@@ -1,0 +1,152 @@
+[project]
+name = "blackjack-lab"
+version = "0.1.0"
+description = "A Blackjack lab that grades decision models against an exact solver and tests whether they speed up Q-learning."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "brian-rey-development" }]
+requires-python = ">=3.14"
+dependencies = [
+    "numpy>=2.5.5",
+    "pydantic>=2.14.4",
+    "pydantic-settings>=2.16.3",
+]
+
+[project.optional-dependencies]
+jev = [
+    "typesafe-sdk>=0.7.6",
+]
+api = [
+    "fastapi>=0.165.0",
+    "uvicorn>=0.54.0",
+]
+notebooks = [
+    "marimo>=0.26.0",
+    "matplotlib>=3.11.2",
+]
+local = [
+    "mlx-lm>=0.32.2 ; sys_platform == 'darwin'",
+]
+llm = [
+    "pydantic-ai-slim>=2.76.0",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.29.0",
+    "hypothesis>=6.170.17",
+    "import-linter>=2.17",
+    "pyright>=1.1.414",
+    "pytest>=9.2.0",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.17.6",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.5,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "D",       # docstring policy lives in CLAUDE.md
+    "COM812",  # conflicts with the formatter
+    "ISC001",  # conflicts with the formatter
+    "CPY",     # no copyright headers
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 8
+
+[tool.ruff.lint.pylint]
+max-args = 5
+max-branches = 8
+max-statements = 20
+max-returns = 4
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+    "S101",    # pytest relies on bare assert
+    "PLR2004", # literal expected values are the point of an assertion
+    "INP001",  # tests are not a package (--import-mode=importlib)
+]
+"notebooks/**" = [
+    "INP001",  # marimo notebooks are scripts, not package modules
+    "ANN",     # marimo generates unannotated cell functions
+    "PLR1711", # marimo cells end with a bare return
+    "B018",    # a bare expression is how a marimo cell displays output
+    "PLC0415", # marimo cells import inside their own function
+    "E501",    # markdown prose in cells reads better unwrapped
+]
+
+[tool.pyright]
+typeCheckingMode = "strict"
+venvPath = "."
+venv = ".venv"
+include = ["src", "tests", "notebooks"]
+reportImplicitOverride = "error"
+reportUnnecessaryTypeIgnoreComment = "error"
+reportImportCycles = "error"
+
+[[tool.pyright.executionEnvironments]]
+root = "notebooks"
+reportMissingParameterType = "none"
+reportUnknownParameterType = "none"
+reportUnknownArgumentType = "none"
+reportUnknownMemberType = "none"
+reportUnusedFunction = "none"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --strict-config --import-mode=importlib"
+xfail_strict = true
+filterwarnings = ["error"]
+
+[tool.importlinter]
+root_packages = ["blackjack_lab"]
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Layers run app, then adapters, then core"
+type = "layers"
+layers = ["blackjack_lab.app", "blackjack_lab.adapters", "blackjack_lab.core"]
+
+[[tool.importlinter.contracts]]
+name = "Core stays pure: stdlib and numpy only"
+type = "forbidden"
+source_modules = ["blackjack_lab.core"]
+forbidden_modules = [
+    "typesafe_sdk",
+    "pydantic",
+    "pydantic_settings",
+    "pydantic_ai",
+    "fastapi",
+    "starlette",
+    "uvicorn",
+    "mlx",
+    "mlx_lm",
+]
+
+[[tool.importlinter.contracts]]
+name = "Adapters know nothing about HTTP serving"
+type = "forbidden"
+source_modules = ["blackjack_lab.adapters"]
+forbidden_modules = ["fastapi", "starlette", "uvicorn"]
+
+[tool.coverage.run]
+source = ["blackjack_lab.core"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 100
+show_missing = true
+skip_covered = true
+exclude_also = ["if TYPE_CHECKING:"]
